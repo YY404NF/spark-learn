@@ -30,14 +30,6 @@ public final class Main {
             .map(Main::words).filter(w -> !w.isEmpty()).collect(Collectors.toList());
     }
 
-    static List<Tuple2<String, Long>> grams(List<String> tokens, int length) {
-        List<Tuple2<String, Long>> out = new ArrayList<>();
-        for (int i = 0; i + length <= tokens.size(); i++) {
-            out.add(new Tuple2<>(String.join(" ", tokens.subList(i, i + length)), 1L));
-        }
-        return out;
-    }
-
     static long saveRanked(JavaSparkContext sc, JavaPairRDD<String, Long> counts,
                            String path, int n) {
         List<String> lines = counts.takeOrdered(n, new Rank()).stream()
@@ -57,23 +49,6 @@ public final class Main {
             .flatMap(line -> words(line).iterator())
             .mapToPair(word -> new Tuple2<>(word, 1L)).reduceByKey(Long::sum);
         metric("topn", start, saveRanked(sc, counts, output, n));
-    }
-
-    static void phrases(JavaSparkContext sc, String input, String output, int n, long min) {
-        long start = System.nanoTime();
-        JavaRDD<List<String>> inputSentences = sc.textFile(input)
-            .flatMap(line -> sentences(line).iterator()).persist(StorageLevel.MEMORY_AND_DISK());
-        long total = 0;
-        try {
-            for (int k = 2; k <= 3; k++) {
-                final int size = k;
-                JavaPairRDD<String, Long> counts = inputSentences
-                    .flatMapToPair(tokens -> grams(tokens, size).iterator())
-                    .reduceByKey(Long::sum).filter(row -> row._2() >= min);
-                total += saveRanked(sc, counts, output + "/" + k, n);
-            }
-        } finally { inputSentences.unpersist(); }
-        metric("phrases", start, total);
     }
 
     static Set<String> frontier(JavaPairRDD<String, Long> frequent) {
@@ -198,16 +173,15 @@ public final class Main {
     }
 
     public static void main(String[] args) {
-        require(args.length > 0, "命令: topn / phrases / apriori / join / suite，详见README");
+        require(args.length > 0, "命令: topn / apriori / join / suite，详见README");
         String mode = args[0];
-        require(Set.of("topn", "phrases", "apriori", "join", "suite").contains(mode), "未知命令");
+        require(Set.of("topn", "apriori", "join", "suite").contains(mode), "未知命令");
         require((mode.equals("suite") && args.length == 3)
             || (mode.equals("topn") && args.length == 4)
             || (!mode.equals("suite") && !mode.equals("topn") && args.length == 5), "参数数量错误");
-        if (mode.equals("topn") || mode.equals("phrases") || mode.equals("apriori")) {
+        if (mode.equals("topn") || mode.equals("apriori")) {
             require(Integer.parseInt(args[3]) > 0, "N必须为正");
         }
-        if (mode.equals("phrases")) require(Long.parseLong(args[4]) > 0, "minCount必须为正");
         if (mode.equals("apriori")) {
             double value = Double.parseDouble(args[4]);
             require(value > 0 && value <= 1, "支持度必须在(0,1]内");
@@ -218,16 +192,13 @@ public final class Main {
             System.out.println("LAB_APPLICATION\t" + sc.sc().applicationId());
             switch (mode) {
                 case "topn": topn(sc, args[1], args[2], Integer.parseInt(args[3])); break;
-                case "phrases": phrases(sc, args[1], args[2], Integer.parseInt(args[3]), Long.parseLong(args[4])); break;
                 case "apriori": apriori(sc, args[1], args[2], Integer.parseInt(args[3]), Double.parseDouble(args[4])); break;
                 case "join": join(sc, args[1], args[2], args[3], args[4].equals("early")); break;
                 case "suite":
                     String in = args[1], out = args[2];
                     topn(sc, in + "/words-small.txt", out + "/topn-small", 2);
                     topn(sc, in + "/alice.txt", out + "/topn-alice", 10);
-                    phrases(sc, in + "/phrases-small.txt", out + "/phrases-small", 20, 1);
-                    apriori(sc, in + "/phrases-small.txt", out + "/apriori-small", 20, 0.5);
-                    phrases(sc, in + "/alice.txt", out + "/phrases-alice", 20, 2);
+                    apriori(sc, in + "/apriori-small.txt", out + "/apriori-small", 20, 0.5);
                     apriori(sc, in + "/alice.txt", out + "/apriori-alice", 20, 0.02);
                     join(sc, in + "/orders.txt", in + "/customers.txt", out + "/join-small", true);
                     join(sc, in + "/generated/orders.txt", in + "/generated/customers.txt", out + "/join-early", true);

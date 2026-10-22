@@ -38,13 +38,7 @@ def verify(data, result):
     for source, suffix, n in [('words-small.txt', 'small', 2), ('alice.txt', 'alice', 10)]:
         text = (data / source).read_text()
         same('topn-' + suffix, result / ('topn-' + suffix), ranked(Counter(tokens(text)), n), True)
-    for source, suffix, threshold in [('phrases-small.txt', 'small', 1), ('alice.txt', 'alice', 2)]:
-        sentences = sentence_tokens((data / source).read_text())
-        for k in (2, 3):
-            counts = Counter(' '.join(words[i:i+k]) for words in sentences for i in range(len(words)-k+1))
-            counts = Counter({key: count for key, count in counts.items() if count >= threshold})
-            same(f'phrases-{suffix}-{k}', result / ('phrases-' + suffix) / str(k), ranked(counts, 20), True)
-    for source, suffix, support in [('phrases-small.txt', 'small', .5), ('alice.txt', 'alice', .02)]:
+    for source, suffix, support in [('apriori-small.txt', 'small', .5), ('alice.txt', 'alice', .02)]:
         transactions = [sorted(set(words)) for words in sentence_tokens((data / source).read_text())]
         t = len(transactions)
         minimum = math.ceil(support*t)

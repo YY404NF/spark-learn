@@ -1,6 +1,6 @@
 # Spark RDD 实验代码
 
-作业2：TopN 词频、二元/三元词组、Apriori 频繁项集、两张表连接。只用 Spark RDD，不用 Spark SQL。
+作业2：TopN 词频、Apriori 频繁项集、两张表连接。只用 Spark RDD，不用 Spark SQL。
 
 ## 运行流程
 
@@ -22,13 +22,12 @@ python run.py fetch                                 # 到期前下载结果
 source /etc/profile.d/spark-lab.sh
 bash build.sh          # 产出 target/homework2.jar
 spark-submit --class lab.Main --master yarn target/homework2.jar topn <input> <output> <N>
-spark-submit --class lab.Main --master yarn target/homework2.jar phrases <input> <output> <N> <minCount>
 spark-submit --class lab.Main --master yarn target/homework2.jar apriori <input> <output> <N> <minSupport>
 spark-submit --class lab.Main --master yarn target/homework2.jar join <orders> <customers> <output> early|late
 spark-submit --class lab.Main --master yarn target/homework2.jar suite <input-dir> <output-dir>
 ```
 
-输出目录必须不存在。`suite` 在一个应用里依次跑完九个案例。英文按 ASCII 字母切词并转小写，同频按字典序；Apriori 以句子为事务、项集最长 3，超过 2 万个频繁项或多词事务会明确报错。
+输出目录必须不存在。`suite` 在一个应用里依次跑完七个案例。英文按 ASCII 字母切词并转小写，同频按字典序；Apriori 以句子为事务、项集最长 3，超过 2 万个频繁项或多词事务会明确报错。
 
 ## 数据与校验
 
@@ -39,4 +38,4 @@ python3 tools/verify.py --data data --results results
 
 合成数据用固定种子，可精确重建。`data/alice-source.txt` 取自 [Project Gutenberg](https://www.gutenberg.org/cache/epub/11/pg11.txt)，`data/alice.txt` 由 `tools/prepare_text.py` 合并段内换行生成。
 
-`target/`、`runs/`、`results/`、`data/generated/`、`.venv/` 都是可重建的产物，已被 `.gitignore` 忽略；`results/` 与 `runs/download/results/` 是上一轮验证快照，`tools/verify.py` 对其可重做 21 项校验。
+`target/`、`runs/`、`results/`、`data/generated/`、`.venv/` 都是可重建的产物，已被 `.gitignore` 忽略；`results/` 与 `runs/download/results/` 是上一轮验证快照，`tools/verify.py` 对其可重做 17 项校验。
