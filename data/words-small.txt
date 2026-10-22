@@ -1,0 +1,2 @@
+Hello Hadoop, hello Spark!
+Hadoop spark hello.

@@ -1,0 +1,17 @@
+{
+  "region_id": "cn-heyuan",
+  "image_id": "ubuntu_26_04_x64_20G_alibase_20260916.vhd",
+  "instance_type": "ecs.e-c1m1.large",
+  "instance_count": 3,
+  "name_prefix": "spark-lab",
+  "vpc_id": "vpc-填你自己的VPCID",
+  "v_switch_id": "vsw-填你自己的交换机ID",
+  "security_group_id": "sg-填你自己的安全组ID",
+  "ssh_user": "root",
+  "system_disk_size_gb": 20,
+  "lifetime_minutes": 30,
+  "output_file": "runs/deployment-state.json",
+  "private_key_file": "spark-lab-id_rsa",
+  "key_pair_name_prefix": "spark-lab-key",
+  "credential_file": "../.aliyun-accessKey"
+}

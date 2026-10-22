@@ -1,0 +1,23 @@
+# 本地工具链与构建产物：全部可由源码重建
+.venv/
+__pycache__/
+*.py[cod]
+target/
+
+# 生成的实验数据：固定种子可重建，不入库
+# python3 tools/generate_join_data.py --output-dir data/generated
+data/generated/
+
+# 运行期产物：实例状态、运行时密钥、日志、结果快照
+runs/
+results/
+
+# 凭据与本机云资源标识：任何情况下都不提交
+.aliyun-accessKey
+deploy-config.json
+spark-lab-id_rsa*
+*.known_hosts
+
+# 系统与编辑器杂项
+.DS_Store
+*.log

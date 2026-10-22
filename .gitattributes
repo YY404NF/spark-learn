@@ -1,0 +1,11 @@
+# 统一换行符与文本判定，避免跨平台提交产生无意义差异
+* text=auto
+*.sh text eol=lf
+*.py text eol=lf
+*.java text eol=lf
+*.md text eol=lf
+*.json text eol=lf
+*.txt text
+*.tsv text
+*.jar binary
+*.gz binary
