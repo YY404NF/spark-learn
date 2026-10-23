@@ -4,25 +4,49 @@ ROLE="$1"; MASTER_IP="$2"; NODE_COUNT="$3"
 export DEBIAN_FRONTEND=noninteractive
 ln -sf /usr/share/zoneinfo/Asia/Shanghai /etc/localtime
 apt-get -o DPkg::Lock::Timeout=180 update -qq
-apt-get -o DPkg::Lock::Timeout=180 install -y -qq openjdk-17-jdk-headless curl python3
+apt-get -o DPkg::Lock::Timeout=180 install -y -qq openjdk-17-jdk-headless curl python3 sudo
 id hadoop >/dev/null 2>&1 || useradd -m -s /bin/bash hadoop
+install -d -m 700 -o hadoop -g hadoop /home/hadoop/.ssh
+install -m 600 -o hadoop -g hadoop /root/.ssh/authorized_keys /home/hadoop/.ssh/authorized_keys
+# deploy.py 将临时密钥写入 root 的 SSH 目录；复制给 hadoop 后，报告中的
+# hadoop@节点 scp 命令以及 Hadoop 节点间通信都可以复用同一密钥。
+if [ -f /root/.ssh/id_rsa ]; then
+    install -m 600 -o hadoop -g hadoop /root/.ssh/id_rsa /home/hadoop/.ssh/id_rsa
+fi
+if [ -f /root/.ssh/known_hosts ]; then
+    install -m 644 -o hadoop -g hadoop /root/.ssh/known_hosts /home/hadoop/.ssh/known_hosts
+fi
+printf '%s\n' 'hadoop ALL=(ALL:ALL) NOPASSWD:ALL' > /etc/sudoers.d/hadoop
+chmod 0440 /etc/sudoers.d/hadoop
+visudo -cf /etc/sudoers.d/hadoop
 export JAVA_HOME="$(dirname "$(dirname "$(readlink -f "$(command -v javac)")")")"
 export HADOOP_HOME=/opt/hadoop SPARK_HOME=/opt/spark
 export HADOOP_CONF_DIR=/opt/hadoop/etc/hadoop
 export PATH="$JAVA_HOME/bin:$HADOOP_HOME/bin:$SPARK_HOME/bin:$PATH"
 mkdir -p /opt /var/cache/spark-lab
+# TUNA 镜像优先；若不可用则回退到腾讯镜像。
+fetch_from_mirrors() {
+    local path="$1" archive="$2"
+    for base in https://mirrors.tuna.tsinghua.edu.cn/apache https://mirrors.cloud.tencent.com/apache; do
+        if curl --fail --location --retry 2 --retry-all-errors --connect-timeout 15 "$base/$path" -o "$archive"; then
+            return 0
+        fi
+    done
+    echo "所有 Apache 镜像均下载失败：$path" >&2
+    return 1
+}
 fetch_extract() {
-    local url="$1" dest="$2" archive="$3"
-    if [ ! -x "$dest/bin/$(test "$dest" = /opt/spark && echo spark-submit || echo hadoop)" ]; then
-        curl --fail --location --retry 3 --connect-timeout 15 "$url" -o "$archive"
+    local relative="$1" dest="$2" archive="$3" executable="$4"
+    if [ ! -x "$dest/bin/$executable" ]; then
+        fetch_from_mirrors "$relative" "$archive"
         mkdir -p "$dest"
         tar -xzf "$archive" -C "$dest" --strip-components=1
         rm -f "$archive"
     fi
 }
-fetch_extract https://mirrors.aliyun.com/apache/hadoop/common/hadoop-3.5.0/hadoop-3.5.0.tar.gz /opt/hadoop /var/cache/spark-lab/hadoop.tgz &
+fetch_extract hadoop/common/hadoop-3.5.0/hadoop-3.5.0.tar.gz /opt/hadoop /var/cache/spark-lab/hadoop.tgz hadoop &
 HADOOP_PID=$!
-fetch_extract https://mirrors.aliyun.com/apache/spark/spark-3.5.8/spark-3.5.8-bin-hadoop3.tgz /opt/spark /var/cache/spark-lab/spark.tgz &
+fetch_extract spark/spark-3.5.8/spark-3.5.8-bin-hadoop3.tgz /opt/spark /var/cache/spark-lab/spark.tgz spark-submit &
 SPARK_PID=$!
 wait "$HADOOP_PID"
 wait "$SPARK_PID"

@@ -16,6 +16,7 @@ results/
 .aliyun-accessKey
 deploy-config.json
 spark-lab-id_rsa*
+spark-lab-*-id_rsa*
 *.known_hosts
 
 # 系统与编辑器杂项

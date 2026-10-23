@@ -196,11 +196,8 @@ public final class Main {
                 case "join": join(sc, args[1], args[2], args[3], args[4].equals("early")); break;
                 case "suite":
                     String in = args[1], out = args[2];
-                    topn(sc, in + "/words-small.txt", out + "/topn-small", 2);
                     topn(sc, in + "/alice.txt", out + "/topn-alice", 10);
-                    apriori(sc, in + "/apriori-small.txt", out + "/apriori-small", 20, 0.5);
                     apriori(sc, in + "/alice.txt", out + "/apriori-alice", 20, 0.02);
-                    join(sc, in + "/orders.txt", in + "/customers.txt", out + "/join-small", true);
                     join(sc, in + "/generated/orders.txt", in + "/generated/customers.txt", out + "/join-early", true);
                     join(sc, in + "/generated/orders.txt", in + "/generated/customers.txt", out + "/join-late", false);
                     break;

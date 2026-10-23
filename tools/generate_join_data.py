@@ -8,8 +8,8 @@ from datetime import date, timedelta
 from pathlib import Path
 
 
-def generate(dest, customers=10000, orders=100000, male_ratio=0.5, seed=20261020, skew=0.0):
-    if customers < 1 or orders < 0 or not 0 <= male_ratio <= 1 or not 0 <= skew <= 1:
+def generate(dest, customers=10000, orders=100000, male_ratio=0.5, seed=20261020):
+    if customers < 1 or orders < 0 or not 0 <= male_ratio <= 1:
         raise ValueError('客户数为正，订单数非负，比例在[0,1]')
     dest = Path(dest)
     dest.mkdir(parents=True, exist_ok=True)
@@ -26,14 +26,12 @@ def generate(dest, customers=10000, orders=100000, male_ratio=0.5, seed=20261020
             people.append(row)
             writer.writerow(row)
     males = [i for i, row in enumerate(people) if row[2] == 'M']
-    if skew and not males:
-        raise ValueError('偏斜实验需要至少一名男性客户')
     expected = 0
     with (dest / 'orders.txt').open('w', encoding='utf-8', newline='') as output, \
          (dest / 'expected.tsv').open('w', encoding='utf-8') as reference:
         writer = csv.writer(output, lineterminator='\n')
         for i in range(orders):
-            index = males[0] if skew and rng.random() < skew else rng.randrange(customers)
+            index = rng.randrange(customers)
             customer = people[index]
             order = [f'O{i:010d}', customer[0], str(date(2026, 1, 1) + timedelta(days=rng.randrange(293)))]
             writer.writerow(order)
@@ -41,7 +39,7 @@ def generate(dest, customers=10000, orders=100000, male_ratio=0.5, seed=20261020
                 reference.write('\t'.join(order + [customer[1], customer[2], customer[3]]) + '\n')
                 expected += 1
     summary = dict(customers=customers, orders=orders, male_customers=len(males),
-        male_orders=expected, male_ratio=male_ratio, seed=seed, skew=skew,
+        male_orders=expected, male_ratio=male_ratio, seed=seed,
         bytes={name: (dest / name).stat().st_size for name in ('orders.txt', 'customers.txt')})
     (dest / 'manifest.json').write_text(json.dumps(summary, ensure_ascii=False, indent=2) + '\n')
     return summary
@@ -53,8 +51,7 @@ if __name__ == '__main__':
     parser.add_argument('--orders', type=int, default=100000)
     parser.add_argument('--male-ratio', type=float, default=0.5)
     parser.add_argument('--seed', type=int, default=20261020)
-    parser.add_argument('--skew', type=float, default=0)
     parser.add_argument('--output-dir', default='data/generated')
     args = parser.parse_args()
     print(json.dumps(generate(args.output_dir, args.customers, args.orders,
-        args.male_ratio, args.seed, args.skew), ensure_ascii=False, indent=2))
+        args.male_ratio, args.seed), ensure_ascii=False, indent=2))

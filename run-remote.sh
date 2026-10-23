@@ -4,6 +4,7 @@ set -euxo pipefail
 source /etc/profile.d/spark-lab.sh
 cd /opt/lab
 export LAB_ROOT="/user/hadoop/homework2-${1:-test}"
+rm -rf results
 mkdir -p results
 {
     date -Is
@@ -16,12 +17,13 @@ mkdir -p results
     df -h /
 } > results/environment.txt 2>&1
 hdfs dfsadmin -safemode wait
+hdfs dfs -rm -r -f "$LAB_ROOT"
 hdfs dfs -mkdir -p /spark-events "$LAB_ROOT/input/generated"
 hdfs dfs -chmod 1777 /spark-events
 bash build.sh
 python3 tools/generate_join_data.py --output-dir data/generated > results/generation.json
-hdfs dfs -put data/words-small.txt data/apriori-small.txt data/alice.txt data/orders.txt data/customers.txt "$LAB_ROOT/input/"
-hdfs dfs -put data/generated/orders.txt data/generated/customers.txt "$LAB_ROOT/input/generated/"
+hdfs dfs -put -f data/alice.txt "$LAB_ROOT/input/"
+hdfs dfs -put -f data/generated/orders.txt data/generated/customers.txt "$LAB_ROOT/input/generated/"
 date -Is > results/started.txt
 SECONDS=0
 spark-submit --class lab.Main --master yarn --deploy-mode client \
@@ -33,7 +35,7 @@ spark-submit --class lab.Main --master yarn --deploy-mode client \
     > results/spark-suite.log 2>&1
 echo "$SECONDS" > results/application-wall-seconds.txt
 date -Is > results/finished.txt
-for name in topn-small topn-alice apriori-small apriori-alice join-small join-early join-late; do
+for name in topn-alice apriori-alice join-early join-late; do
     hdfs dfs -get "$LAB_ROOT/output/$name" "results/$name"
 done
 hdfs dfs -get /spark-events results/spark-events

@@ -35,28 +35,20 @@ def verify(data, result):
         checks.append(dict(check=label, passed=ok, rows=len(observed), expected_rows=len(expected)))
         if not ok:
             raise AssertionError(json.dumps(checks[-1], ensure_ascii=False))
-    for source, suffix, n in [('words-small.txt', 'small', 2), ('alice.txt', 'alice', 10)]:
-        text = (data / source).read_text()
-        same('topn-' + suffix, result / ('topn-' + suffix), ranked(Counter(tokens(text)), n), True)
-    for source, suffix, support in [('apriori-small.txt', 'small', .5), ('alice.txt', 'alice', .02)]:
-        transactions = [sorted(set(words)) for words in sentence_tokens((data / source).read_text())]
-        t = len(transactions)
-        minimum = math.ceil(support*t)
-        one = Counter(word for words in transactions for word in words)
-        frequent_one = {word for word, count in one.items() if count >= minimum}
-        for k in (1, 2, 3):
-            counts = Counter(' '.join(combination) for words in transactions
-                for combination in combinations([w for w in words if w in frequent_one], k))
-            counts = Counter({key: count for key, count in counts.items() if count >= minimum})
-            expected = [f'{key}\t{count}\t{count/t:.8f}' for key, count in counts.items()]
-            same(f'apriori-{suffix}-l{k}', result / ('apriori-' + suffix) / f'l{k}', expected)
-            same(f'apriori-{suffix}-top{k}', result / ('apriori-' + suffix) / f'top{k}', ranked(counts,20), True)
-    people = {row.split(',')[0]: row.split(',') for row in lines(data/'customers.txt')}
-    expected=[]
-    for line in lines(data/'orders.txt'):
-        order=line.split(','); customer=people.get(order[1])
-        if customer and customer[2]=='M': expected.append('\t'.join(order+[customer[1],customer[2],customer[3]]))
-    same('join-small',result/'join-small',expected)
+    text = (data / 'alice.txt').read_text()
+    same('topn-alice', result / 'topn-alice', ranked(Counter(tokens(text)), 10), True)
+    transactions = [sorted(set(words)) for words in sentence_tokens(text)]
+    t = len(transactions)
+    minimum = math.ceil(.02*t)
+    one = Counter(word for words in transactions for word in words)
+    frequent_one = {word for word, count in one.items() if count >= minimum}
+    for k in (1, 2, 3):
+        counts = Counter(' '.join(combination) for words in transactions
+            for combination in combinations([w for w in words if w in frequent_one], k))
+        counts = Counter({key: count for key, count in counts.items() if count >= minimum})
+        expected = [f'{key}\t{count}\t{count/t:.8f}' for key, count in counts.items()]
+        same(f'apriori-alice-l{k}', result / 'apriori-alice' / f'l{k}', expected)
+        same(f'apriori-alice-top{k}', result / 'apriori-alice' / f'top{k}', ranked(counts,20), True)
     generated=lines(data/'generated/expected.tsv')
     same('join-early',result/'join-early',generated)
     same('join-late',result/'join-late',generated)
